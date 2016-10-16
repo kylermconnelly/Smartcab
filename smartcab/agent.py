@@ -19,9 +19,10 @@ class LearningAgent(Agent):
 		self.previoud_reward = None
 		
 		self.epsilon = 1.0	# random/explore
-		self.epsilon_step_size = 0.01	# we will reduce epsilon by this each round
+		self.epsilon_step_size = 0.02	# we will reduce epsilon by this each round
 		
 		self.success_count = 0
+		self.total_reward = 0
 		
 		self.alpha = 0		# learning rate
 		self.gamma = 0		# future vs immediate reward
@@ -69,14 +70,7 @@ class LearningAgent(Agent):
 			return random.choice(self.Q_table[tuple(state)].items())[0]
 		else:
 			return random.choice(max_actions)
-			
-# - Select one among all possible actions for the current state.
-# - Using this possible action, consider going to the next state.
-# - Get maximum Q value for this next state based on all possible actions.
-# - Compute: Q(state, action) = R(state, action) + Gamma * Max[Q(next state, all actions)]
-# - Set the next state as the current state.
-	
-	# Q(state, action) = R(state, action) + Gamma * Max[Q(next state, all actions)]
+				
 	# Q(s, a) += alpha * (reward(s,a) + max(Q(s') - Q(s,a))
 	# s = prev state
 	# a = prev action
@@ -87,7 +81,6 @@ class LearningAgent(Agent):
 		
 		# get new q value
 		new_q = old_q + self.alpha * (prev_reward + self.gamma * max(self.Q_table[tuple(new_state)].values()) - old_q)
-		
 		# now adjust q val for previous state with this action
 		self.Q_table[tuple(prev_state)][prev_action] = new_q
 
@@ -105,6 +98,9 @@ class LearningAgent(Agent):
 
 		# Execute action and get reward
 		reward = self.env.act(self, action)
+		
+		if self.epsilon <= 0:
+			self.total_reward += reward
 		
 		# reward for reaching goal is 12 i believe, so this should catch those instances
 		if (reward > 10) and (self.epsilon <= 0):
@@ -124,6 +120,9 @@ class LearningAgent(Agent):
 	def get_success_count(self):
 		return self.success_count
 	
+	def get_reward_total(self):
+		return self.total_reward
+	
 	def set_params(self, alpha, gamma):
 		self.gamma = gamma
 		self.alpha = alpha
@@ -142,18 +141,25 @@ def run(alpha, gamma):
 	
 	a.set_params(alpha, gamma)
 	
-	sim.run(n_trials=199)  # run for a specified number of trials
+	sim.run(n_trials=100)  # run for a specified number of trials
+	#return a.get_reward_total()
 	return a.get_success_count()
     # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
-
 	
-alpha_array = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-gamma_array = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+#alpha_array = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+#gamma_array = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+alpha_array = [0.7]
+gamma_array = [0.3]
 
 if __name__ == '__main__':
 	alpha_gamma_matrix = [[0 for i in range(len(alpha_array))] for j in range(len(gamma_array))]
 	for alphas in range(len(alpha_array)):
 		for gammas in range(len(gamma_array)):
 			alpha_gamma_matrix[alphas][gammas] = run(alpha_array[alphas], gamma_array[gammas])
-			print "alpha: %f gamma: %f number of successes: %d"%(alpha_array[alphas], gamma_array[gammas], alpha_gamma_matrix[alphas][gammas])
-	print alpha_gamma_matrix
+			print "alpha: %f gamma: %f number of successes: %s"%(alpha_array[alphas], gamma_array[gammas], alpha_gamma_matrix[alphas][gammas])
+	
+	print '     gamma %s'%(' '.join('%07s' % i for i in gamma_array))
+	print 'alpha'
+	for row, j in zip(alpha_gamma_matrix, range(len(alpha_array))):
+		print '     %.2f [%s]' % (alpha_array[j],' '.join('%07s' % i for i in row))
