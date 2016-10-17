@@ -23,14 +23,15 @@ class LearningAgent(Agent):
 		
 		self.success_count = 0
 		self.total_reward = 0
+		self.total_penalty = 0
 		
 		self.alpha = 0		# learning rate
 		self.gamma = 0		# future vs immediate reward
 		
 		self.Q_table = {}
-		default_reward = 0.0
+		default_q = 0.0
 				
-		# initialize state -> action table to all 0
+		# initialize state -> action table to all default_q
 		trafficlight = ['red','green']
 		oncoming = [None, 'left', 'right', 'forward']
 		right = [None, 'left', 'right', 'forward']
@@ -43,7 +44,7 @@ class LearningAgent(Agent):
 						for w in waypoints:
 								new_key = (t,o,r,l,w)
 								# initialize rewards for each action for each state
-								self.Q_table[new_key] = {None:default_reward, 'forward':default_reward, 'right':default_reward, 'left':default_reward}
+								self.Q_table[new_key] = {None:default_q, 'forward':default_q, 'right':default_q, 'left':default_q}
 		
 	def reset(self, destination=None):
 		self.planner.route_to(destination)
@@ -114,6 +115,12 @@ class LearningAgent(Agent):
 		self.previous_state = self.state
 		self.previous_action = action
 		self.previoud_reward = reward
+		
+		if reward < 0 and (self.epsilon <= 0):
+			self.total_penalty += reward
+			#print "LearningAgent.update(): waypoint = {}, deadline = {}, inputs = {}, action = {}, reward = {}".format(self.next_waypoint, deadline, inputs, action, reward)  # [debug]
+			#print self.Q_table[tuple(self.state)]
+			
 
 		#print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
 	
@@ -122,6 +129,9 @@ class LearningAgent(Agent):
 	
 	def get_reward_total(self):
 		return self.total_reward
+	
+	def get_penalty_total(self):
+		return self.total_penalty
 	
 	def set_params(self, alpha, gamma):
 		self.gamma = gamma
@@ -144,6 +154,7 @@ def run(alpha, gamma):
 	sim.run(n_trials=100)  # run for a specified number of trials
 	#return a.get_reward_total()
 	return a.get_success_count()
+#	return a.get_penalty_total()
     # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
 	
 #alpha_array = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
